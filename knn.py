@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 class KNN:
     def __init__(self, k=5, task='classification'):
@@ -27,8 +28,7 @@ class KNN:
 
         else:
             raise ValueError("Tarefa não definida")
-
-        
+   
 def processarDados():
     dados = np.loadtxt("C:\\Users\\João\Documents\\faculdade\\IA\\AV3\\bike_buyers.csv", delimiter=",", skiprows=1, dtype=str)
 
@@ -45,21 +45,45 @@ def processarDados():
     age = dados[:,11]
     purchased_bike = dados[:,12]
 
-    filtro = (age != "") & (income != "")
+    filtro = (age != "") & (income != "") & (purchased_bike != "") & (children != "")
 
     income = income[filtro]
     age = age[filtro]
+    children = children[filtro]
     purchased_bike = purchased_bike[filtro]
 
     age = age.astype(float)
     income = income.astype(float)
+    children = children.astype(float)
 
-    X = np.column_stack((age, income))
+    X = np.column_stack((age, income, children))
     y = purchased_bike
     return X, y
 
+def gerarGraficos(predicoes, reais, k, features_usadas):
+    acertos = sum(p == r for p, r in zip(predicoes, reais))
+    erros = len(predicoes) - acertos
+    total = len(predicoes)
+    acuracia = (acertos / total) * 100
+    lista_features = ", ".join(features_usadas)
 
-X, y = processarDados()
+    titulo1  = f"Acurácia: {acuracia:.2f}%\n"
+    titulo1 += f"Total de amostras: {total}\n"
+    titulo1 += f"Número de K utilizado: {k}\n"
+    titulo1 += f"Atributos utilizados: {lista_features}"
+
+    plt.figure(figsize=(6,6))
+    plt.title(titulo1, fontsize=11)
+
+    plt.pie([acertos, erros],
+            labels=[f"Acertos ({acertos})", f"Erros ({erros})"],
+            autopct="%1.1f%%",
+            startangle=90,
+            explode=(0.05, 0),
+            shadow=True)
+
+    plt.tight_layout()
+    plt.show()
 
 def train_test_split(X, y, test_size=0.2, random_state=42):
     if random_state is not None:
@@ -84,22 +108,12 @@ def train_test_split(X, y, test_size=0.2, random_state=42):
 
     return X_train, X_test, y_train, y_test
 
-
+X, y = processarDados()
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-knn = KNN(k=3, task="classification")
+k = 3
+knn = KNN(k, task="classification")
 knn.fit(X_train, y_train)
-
 predicoes = [knn.calculate_prediction(x) for x in X_test]
 
-pred_sim_nao = ["Sim" if p == "Yes" else "Não" for p in predicoes]
-real_sim_nao = ["Sim" if r == "Yes" else "Não" for r in y_test]
-
-print("\nPredições:")
-print(pred_sim_nao)
-
-print("\nReais:")
-print(real_sim_nao)
-
-def gerarGraficos():
-    pass
+gerarGraficos(predicoes, y_test, k, ["Age", "Income", "Children"])
